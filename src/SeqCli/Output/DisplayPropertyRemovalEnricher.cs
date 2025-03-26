@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using SeqCli.Levels;
 using Serilog.Core;
 using Serilog.Events;
 
 namespace SeqCli.Output;
 
-public class RedundantEventTypeRemovalEnricher : ILogEventEnricher
+class DisplayPropertyRemovalEnricher : ILogEventEnricher
 {
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
         logEvent.RemovePropertyIfPresent("@i");
+        logEvent.RemovePropertyIfPresent(LevelMapping.SurrogateLevelProperty);
     }
 }

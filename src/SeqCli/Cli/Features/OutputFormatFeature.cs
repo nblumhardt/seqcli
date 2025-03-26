@@ -31,11 +31,11 @@ namespace SeqCli.Cli.Features;
 
 class OutputFormatFeature : CommandFeature
 {
-    public const string DefaultOutputTemplate =
+    const string DefaultOutputTemplate =
         "[{Timestamp:o} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}";
 
-    public static readonly ConsoleTheme DefaultTheme     = SystemConsoleTheme.Literate;
-    public static readonly ConsoleTheme DefaultAnsiTheme = AnsiConsoleTheme.Code;
+    static readonly ConsoleTheme DefaultTheme     = SystemConsoleTheme.Literate;
+    static readonly ConsoleTheme DefaultAnsiTheme = AnsiConsoleTheme.Code;
 
     bool _json, _noColor, _forceColor;
 
@@ -68,11 +68,13 @@ class OutputFormatFeature : CommandFeature
             _ => _forceColor = true);
     }
 
-    public Logger CreateOutputLogger()
+    public Logger CreateOutputLogger(string? template = null, Action<LoggerConfiguration>? additionalConfiguration = null)
     {
         var outputConfiguration = new LoggerConfiguration()
             .MinimumLevel.Is(LevelAlias.Minimum)
-            .Enrich.With<RedundantEventTypeRemovalEnricher>();
+            .Enrich.With<DisplayPropertyRemovalEnricher>();
+        
+        additionalConfiguration?.Invoke(outputConfiguration);
 
         if (_json)
         {
@@ -81,7 +83,7 @@ class OutputFormatFeature : CommandFeature
         else
         {
             outputConfiguration.WriteTo.Console(
-                outputTemplate: DefaultOutputTemplate,
+                outputTemplate: template ?? DefaultOutputTemplate,
                 theme: Theme,
                 applyThemeToRedirectedOutput: ApplyThemeToRedirectedOutput);
         }

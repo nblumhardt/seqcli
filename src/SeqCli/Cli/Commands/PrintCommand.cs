@@ -34,15 +34,13 @@ class PrintCommand : Command
 {
     readonly FileInputFeature _fileInputFeature;
     readonly InvalidDataHandlingFeature _invalidDataHandlingFeature;
+    readonly OutputFormatFeature _outputFormatFeature;
 
-    string? _filter, _template = OutputFormatFeature.DefaultOutputTemplate;
-    bool _noColor, _forceColor;
+    string? _filter, _template;
 
     public PrintCommand(SeqCliOutputConfig outputConfig)
     {
         if (outputConfig == null) throw new ArgumentNullException(nameof(outputConfig));
-        _noColor = outputConfig.DisableColor;
-        _forceColor = outputConfig.ForceColor;
 
         _fileInputFeature = Enable(new FileInputFeature("CLEF file to read", allowMultiple: true));
 
@@ -56,43 +54,26 @@ class PrintCommand : Command
 
         _invalidDataHandlingFeature = Enable<InvalidDataHandlingFeature>();
 
-        Options.Add("no-color", "Don't colorize text output", v => _noColor = true);
-
-        Options.Add("force-color",
-            "Force redirected output to have ANSI color (unless `--no-color` is also specified)",
-            v => _forceColor = true);
+        _outputFormatFeature = Enable(new OutputFormatFeature(outputConfig));
     }
 
     protected override async Task<int> Run()
     {
-        var applyThemeToRedirectedOutput
-            = !_noColor && _forceColor;
-
-        var theme
-            = _noColor                      ? ConsoleTheme.None
-            :  applyThemeToRedirectedOutput ? OutputFormatFeature.DefaultAnsiTheme
-            :                                 OutputFormatFeature.DefaultTheme;
-
-        var outputConfiguration = new LoggerConfiguration()
-            .MinimumLevel.Is(LevelAlias.Minimum)
-            .Enrich.With<RedundantEventTypeRemovalEnricher>()
-            .WriteTo.Console(
-                outputTemplate: _template ?? OutputFormatFeature.DefaultOutputTemplate,
-                theme: theme,
-                applyThemeToRedirectedOutput: applyThemeToRedirectedOutput);
-
-        if (_filter != null)
+        CompiledExpression? filter = null;
+        if (_filter != null && !SerilogExpression.TryCompile(_filter, out filter, out var error))
         {
-            if (!SerilogExpression.TryCompile(_filter, out var filter, out var error))
-            {
-                Log.Error("The specified filter could not be compiled: {Error}", error);
-                return 1;
-            }
-            
-            outputConfiguration.Filter.ByIncludingOnly(evt => ExpressionResult.IsTrue(filter(evt)));
+            Log.Error("The specified filter could not be compiled: {Error}", error);
+            return 1;
         }
-
-        await using var logger = outputConfiguration.CreateLogger();
+        
+        await using var logger = _outputFormatFeature.CreateOutputLogger(_template, lc =>
+        {
+            if (filter != null)
+            {
+                lc.Filter.ByIncludingOnly(evt => ExpressionResult.IsTrue(filter(evt)));
+            }
+        });
+        
         foreach (var input in _fileInputFeature.OpenInputs())
         {
             using (input)

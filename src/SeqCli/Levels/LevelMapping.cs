@@ -18,7 +18,7 @@ using Serilog.Events;
 
 namespace SeqCli.Levels;
 
-public static class LevelMapping
+static class LevelMapping
 {
     // Use a "hygienic" name for the original level value to avoid collisions
     internal static readonly string SurrogateLevelProperty = $"_SeqcliOriginalLevel_{Guid.NewGuid():N}";
