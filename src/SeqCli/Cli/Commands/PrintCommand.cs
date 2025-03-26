@@ -20,11 +20,8 @@ using Seq.Syntax.Expressions;
 using SeqCli.Cli.Features;
 using SeqCli.Config;
 using SeqCli.Ingestion;
-using SeqCli.Output;
 using SeqCli.Util;
 using Serilog;
-using Serilog.Events;
-using Serilog.Sinks.SystemConsole.Themes;
 
 namespace SeqCli.Cli.Commands;
 

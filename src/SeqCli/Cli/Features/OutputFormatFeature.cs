@@ -72,6 +72,7 @@ class OutputFormatFeature : CommandFeature
     {
         var outputConfiguration = new LoggerConfiguration()
             .MinimumLevel.Is(LevelAlias.Minimum)
+            // TODO: the surrogate level should not be removed when outputting JSON, since the output formatter uses this.
             .Enrich.With<DisplayPropertyRemovalEnricher>();
         
         additionalConfiguration?.Invoke(outputConfiguration);
