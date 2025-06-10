@@ -20,4 +20,10 @@ public class CommandMetadata : ICommandMetadata
     public string? SubCommand { get; set; }
     public required string HelpText { get; set; }
     public string? Example { get; set; }
+    
+    public bool McpHidden { get; set; }
+    public bool IdempotentHint { get; set; }
+    public bool ReadonlyHint { get; set; }
+    public bool DestructiveHint { get; set; }
+    public bool OpenWorldHint { get; set; }
 }

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System;
+using ModelContextProtocol.Protocol;
 
 namespace SeqCli.Cli;
 
@@ -24,6 +25,12 @@ public class CommandAttribute : Attribute, ICommandMetadata
     public string HelpText { get; }
 
     public string? Example { get; set; }
+
+    public bool McpHidden { get; set; } = false;
+    public bool IdempotentHint { get; set; } = false;
+    public bool ReadonlyHint { get; set; } = false;
+    public bool DestructiveHint { get; set; } = true;
+    public bool OpenWorldHint { get; set; } = true;
 
     public CommandAttribute(string name, string helpText)
     {

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Seq.Api;
@@ -48,7 +49,7 @@ class HealthCommand : Command
         _connection = Enable<ConnectionFeature>();
     }
         
-    protected override async Task<int> Run()
+    protected override async Task<int> Run(TextWriter stdout)
     {
         var connection = _connectionFactory.Connect(_connection);
 
@@ -56,13 +57,13 @@ class HealthCommand : Command
 
         if (_waitUntilHealthy.ShouldWait)
         {
-            return await RunUntilHealthy(connection, timeout ?? TimeSpan.FromSeconds(30));
+            return await RunUntilHealthy(connection, timeout ?? TimeSpan.FromSeconds(30), stdout);
         }
 
-        return await RunOnce(connection);
+        return await RunOnce(connection, stdout);
     }
 
-    async Task<int> RunUntilHealthy(SeqConnection connection, TimeSpan timeout)
+    async Task<int> RunUntilHealthy(SeqConnection connection, TimeSpan timeout, TextWriter stdout)
     {
         using var ct = new CancellationTokenSource(timeout);
         
@@ -78,7 +79,7 @@ class HealthCommand : Command
                 {
                     try
                     {
-                        if (await RunOnce(connection) == 0)
+                        if (await RunOnce(connection, stdout) == 0)
                         {
                             return 0;
                         }
@@ -98,7 +99,7 @@ class HealthCommand : Command
         }
     }
 
-    async Task<int> RunOnce(SeqConnection connection)
+    async Task<int> RunOnce(SeqConnection connection, TextWriter stdout)
     {
         var health = await connection.Cluster.CheckHealthAsync();
 
@@ -106,9 +107,9 @@ class HealthCommand : Command
         {
             _output.WriteObject(health);
         } else if (!string.IsNullOrWhiteSpace(health.Description)) {
-            Console.WriteLine($"{health.Status}: {health.Description}");
+            await stdout.WriteLineAsync($"{health.Status}: {health.Description}");
         } else {
-            Console.WriteLine($"{health.Status}");
+            await stdout.WriteLineAsync($"{health.Status}");
         }
 
         return health.Status switch

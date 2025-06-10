@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using SeqCli.Cli.Features;
@@ -38,11 +39,11 @@ class ListCommand : Command
         _connection = Enable<ConnectionFeature>();
     }
     
-    protected override async Task<int> Run()
+    protected override async Task<int> Run(TextWriter stdout)
     {
         if (PackageId != null && Id != null)
         {
-            ShowUsageErrors(new[] {"Only one of either `package-id` or `id` can be specified"});
+            ShowUsageErrors(["Only one of either `package-id` or `id` can be specified"], stdout);
             return 1;
         }
 

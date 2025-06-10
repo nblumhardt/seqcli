@@ -14,6 +14,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Serilog;
@@ -49,8 +50,10 @@ abstract class Command
         return t;
     }
 
-    public void PrintUsage()
+    public void PrintUsage(TextWriter? output = null)
     {
+        output ??= Console.Error;
+        
         var allOptions = new OptionSet();
         foreach (var option in Options)
         {
@@ -59,11 +62,11 @@ abstract class Command
 
         allOptions.Add("verbose", "Print verbose output to `STDERR`", _ => { });
 
-        Console.Error.WriteLine("Arguments:");
-        allOptions.WriteOptionDescriptions(Console.Error);
+        output.WriteLine("Arguments:");
+        allOptions.WriteOptionDescriptions(output);
     }
 
-    public async Task<int> Invoke(string[] args)
+    public async Task<int> Invoke(string[] args, TextWriter? stdout = null)
     {
         var unrecognised = Options.Parse(args).ToArray();
 
@@ -71,33 +74,48 @@ abstract class Command
 
         if (errs.Any())
         {
-            ShowUsageErrors(errs);
+            ShowUsageErrors(errs, stdout);
             return 1;
         }
 
-        return await Run(unrecognised);
+        return await Run(unrecognised, stdout);
     }
 
-    protected virtual async Task<int> Run(string[] unrecognized)
+    protected virtual Task<int> Run(string[] unrecognized)
     {
-        if (unrecognized.Any())
+        return Run(unrecognized, null);
+    }
+
+    protected virtual async Task<int> Run(string[] unrecognized, TextWriter? stdout)
+    {
+        if (unrecognized.Length != 0)
         {
-            ShowUsageErrors(new [] { "Unrecognized options: " + string.Join(", ", unrecognized) });
+            ShowUsageErrors(["Unrecognized options: " + string.Join(", ", unrecognized)], stdout);
             return 1;
         }
 
-        return await Run();
+        return await Run(stdout ?? Console.Out);
     }
+
+    protected virtual Task<int> Run(TextWriter stdout) { return Run(); }
 
     protected virtual Task<int> Run() { return Task.FromResult(0); }
 
-    protected static void ShowUsageErrors(IEnumerable<string> errors)
+    protected static void ShowUsageErrors(IEnumerable<string> errors, TextWriter? stdout)
     {
         foreach (var error in errors)
         {
+            if (stdout != null)
+            {
+                stdout.WriteLine(error);
+            }
+            else
+            {
 #pragma warning disable Serilog004 // Constant MessageTemplate verifier
-            Log.Error(error);
+                Log.Error(error);
 #pragma warning restore Serilog004 // Constant MessageTemplate verifier
+                
+            }
         }
     }
 }
